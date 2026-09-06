@@ -1,0 +1,40 @@
+title: KQL Field Notes
+description: Practical Kusto Query Language notes and work-related reference material.
+url: "https://example.com"
+baseurl: ""
+lang: en-US
+
+markdown: kramdown
+permalink: /:categories/:title/
+
+theme: null
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+collections:
+  notes:
+    output: true
+    permalink: /notes/:path/
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+  - scope:
+      path: ""
+      type: notes
+    values:
+      layout: post
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor

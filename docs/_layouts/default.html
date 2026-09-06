@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="{{ site.lang | default: 'en-US' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% seo %}
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+    {% feed_meta %}
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="site-title" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+        <nav aria-label="Primary navigation">
+          <a href="{{ '/' | relative_url }}">Notes</a>
+          <a href="{{ '/about/' | relative_url }}">About</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell">
+      {{ content }}
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <span>{{ site.title }}</span>
+        <span>Built with Jekyll and GitHub Pages</span>
+      </div>
+    </footer>
+  </body>
+</html>
