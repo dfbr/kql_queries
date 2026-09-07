@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Useful links
-description: Links and tools collected in the IT scripts bookmarks folder.
+description: Links that are useful in my information security work
 date: 2026-09-07
 categories:
   - resources
@@ -10,6 +10,10 @@ tags:
 ---
 
 My list of useful links
+
+## Microsoft Defender
+
+
 
 - [Sentinel-Queries/SecurityAlert-FindBlastRadiusofPasswordSpray.kql at main · reprise99/Sentinel-Queries · GitHub](https://github.com/reprise99/Sentinel-Queries/blob/main/Security%20Alert/SecurityAlert-FindBlastRadiusofPasswordSpray.kql)
 - [Running Remote Commands - PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/learn/remoting/running-remote-commands?view=powershell-7.3)
