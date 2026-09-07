@@ -2,9 +2,14 @@
 title: Add tenant allow/block list as a watchlist in Microsoft Sentinel
 updated: 2026-09-07 09:56:15Z
 created: 2026-09-07 07:53:15Z
-latitude: 58.97006240
-longitude: 5.73309200
-altitude: 0.0000
+layout: post
+description: A guide (but not verbatim) to adding the tenant allow/block list to sentinel as a watchlist
+date: 2026-09-06
+categories:
+  - guide
+tags:
+  - guide sentinel watchlist "tenant allow block list"
+
 ---
 
 # Add tenant allow/block list as a watchlist in Microsoft Sentinel
