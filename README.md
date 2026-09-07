@@ -1,4 +1,4 @@
-# KQL Field Notes
+# The work in front of me
 
 A Jekyll site for practical Kusto Query Language notes and related work reference material.
 
