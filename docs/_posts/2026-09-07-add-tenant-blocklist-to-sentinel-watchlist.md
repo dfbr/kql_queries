@@ -8,7 +8,10 @@ date: 2026-09-06
 categories:
   - guide
 tags:
-  - guide sentinel watchlist "tenant allow block list"
+  - guide
+  - sentinel
+  - watchlist
+  - tenant allow block list
 
 ---
 
