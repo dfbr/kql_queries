@@ -40,7 +40,7 @@ The same can be achieved through the command line with the following recipe
 
 ```
 # first create the signing key
-gpg --quick-generate-key "Alice alice@example.com" ed25519 cert,sign 1d
+gpg --quick-generate-key "Name your_email@example.com" ed25519 cert,sign 1d
 
 # then find the key fingerprint
 gpg --list-secret-keys --keyid-format LONG
