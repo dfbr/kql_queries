@@ -36,4 +36,5 @@ _This guide assumes you've already [installed GPG tools]({% post_url 2026-09-14-
 	- Printed paper
 
 _Barring unforseen errors, no one who does not have the private key of one of the recipients will be able to read the message._
+
 _Barring unforseen errors, it is impossible that anyone who doesn't have the private key of the signing keypair could have created this message._
