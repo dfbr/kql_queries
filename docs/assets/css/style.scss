@@ -108,6 +108,7 @@ h3 { margin: 0.35rem 0; font-size: 1.4rem; font-weight: 500; }
 .post-content pre { overflow-x: auto; padding: 1.25rem; color: #edf3ed; background: var(--code); border-left: 4px solid var(--accent); font: 0.9rem/1.65 "IBM Plex Mono", monospace; }
 .post-content code { font-family: "IBM Plex Mono", monospace; font-size: 0.9em; }
 .post-content :not(pre) > code { padding: 0.15rem 0.3rem; background: #e4e9e1; }
+.post-content pre.mermaid { padding: 0; color: inherit; background: none; border-left: 0; text-align: center; }
 
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
 
