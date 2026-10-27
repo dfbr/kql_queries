@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Detect ClickFix attacks
-description: A starting point for detecting ClickFix attacks against windows computers in the environment
+description: A starting-point advanced hunting query for detecting ClickFix attacks against Windows devices.
 date: 2026-09-08
 categories:
   - ClickFix
@@ -11,56 +11,72 @@ tags:
   - Advanced hunting
 ---
 
-## ClickFix detection
+## What ClickFix is
 
-__ClickFix__ is a social-engineering technique that tricks someone into running a command on their own computer. For example, a webpage may show a fake CAPTCHA or error message and tell the visitor to follow steps that copy and run a command. Because the person starts the process themselves, the activity can look different from a conventional malware download.
+__ClickFix__ is a social-engineering technique that tricks someone into running a command on their own computer. A web page shows a fake CAPTCHA or error message and tells the visitor to paste and run a command, usually through the Run dialog or a terminal. Because the user starts the process themselves, the activity looks different from a conventional malware download and can slip past detections built for that.
 
-This query is based on the query from [The One Chokepoint to Rule Them All: ](https://ddosier-disects.medium.com/the-one-chokepoint-to-rule-them-all-why-i-deleted-50-clickfix-detection-rules-and-replaced-them-7c532206d32d): Why I Deleted 50 ClickFix Detection Rules and Replaced Them With One. I had to do quite a bit of debugging for my environment and tailoring for my environment. 
+## Why one correlated rule beats many
 
-If it runs in your environment, you can use this for a detection rule and have incidents automatically inserted into your [todo list](https://security.microsoft.com/incidents)
+ClickFix lures change constantly: new fake CAPTCHAs, new wording, new payload hosts and new obfuscation in the pasted command. Rules written for each variant multiply quickly, need constant upkeep and still miss the next variant.
+
+What doesn't change is the chain of behaviour the attack depends on. The user copies something, a shell starts from an unusual parent such as the Run dialog, and that shell reaches out to the internet. Detecting that chain catches variants you haven't seen yet, gives you one rule to tune instead of dozens, and produces fewer, better-explained alerts because each hit shows the whole sequence.
+
+## The query
+
+This query is adapted from [The One Chokepoint to Rule Them All: Why I Deleted 50 ClickFix Detection Rules and Replaced Them With One](https://ddosier-disects.medium.com/the-one-chokepoint-to-rule-them-all-why-i-deleted-50-clickfix-detection-rules-and-replaced-them-7c532206d32d). I had to debug and tailor it for my environment, and you will probably need to do the same.
+
+It looks for two patterns:
+
+- **Clipboard to shell**: a script host reads the clipboard and a shell starts within 60 seconds.
+- **Shell to network**: a shell starts from a typical ClickFix parent (such as `explorer.exe` from the Run dialog) and a script host makes an outbound connection within 180 seconds.
+
+Each hit is scored by what the command line contains, and only medium-confidence and above are returned.
 
 ```kql
+let Lookback = 1d; // widen for hunting, keep short for a detection rule
 let ClipboardAccess = DeviceEvents
-| where ActionType contains "GetClipboardData"
-| where InitiatingProcessFileName in~
-      ("powershell.exe","pwsh.exe","cmd.exe","wscript.exe",
-       "cscript.exe","mshta.exe","wt.exe","RunDll32.exe")
-| where InitiatingProcessCommandLine has_any
-      ("Get-Clipboard","[System.Windows.Forms.Clipboard]",
-       "clip","pbpaste")
-| extend ClipTime=Timestamp,
-      ClipInitProc=InitiatingProcessFileName,
-      ClipCmdLine=InitiatingProcessCommandLine;
+    | where Timestamp > ago(Lookback)
+    | where ActionType contains "GetClipboardData"
+    | where InitiatingProcessFileName in~
+        ("powershell.exe","pwsh.exe","cmd.exe","wscript.exe",
+         "cscript.exe","mshta.exe","wt.exe","RunDll32.exe")
+    | where InitiatingProcessCommandLine has_any
+        ("Get-Clipboard","[System.Windows.Forms.Clipboard]","clip")
+    | project ClipTime = Timestamp, DeviceId,
+        ClipInitProc = InitiatingProcessFileName,
+        ClipCmdLine = InitiatingProcessCommandLine;
 let ShellSpawn = DeviceProcessEvents
+    | where Timestamp > ago(Lookback)
     | where FileName in~
-      ("powershell.exe","pwsh.exe","cmd.exe","mshta.exe",
-       "wscript.exe","cscript.exe","wt.exe","RunDll32.exe",
-       "msiexec.exe","fodhelper.exe","schtasks.exe")
-| where InitiatingProcessFileName in~
-      ("explorer.exe","SearchHost.exe","wt.exe",
-       "RunDll32.exe","msiexec.exe","WerFault.exe",
-       "DllHost.exe","fodhelper.exe","winlogon.exe",
-       "userinit.exe","cmd.exe")
-// Exclude SYSTEM-context noise
+        ("powershell.exe","pwsh.exe","cmd.exe","mshta.exe",
+         "wscript.exe","cscript.exe","wt.exe","RunDll32.exe",
+         "msiexec.exe","fodhelper.exe","schtasks.exe")
+    | where InitiatingProcessFileName in~
+        ("explorer.exe","SearchHost.exe","wt.exe",
+         "RunDll32.exe","msiexec.exe","WerFault.exe",
+         "DllHost.exe","fodhelper.exe","winlogon.exe",
+         "userinit.exe","cmd.exe")
+    // Exclude SYSTEM-context noise
     | where InitiatingProcessAccountName !in~ ("SYSTEM","LOCAL SERVICE","NETWORK SERVICE")
-// Key ClickFix payload indicators
+    // Key ClickFix payload indicators
     | extend IsSuspiciousCmdLine = ProcessCommandLine has_any (
         "IEX","Invoke-Expression","-enc","-EncodedCommand","-e ",
         "Get-Clipboard","DownloadString","DownloadFile",
         "Net.WebClient","Invoke-WebRequest","iwr","curl",
         "Start-Process","Hidden","Bypass","HKCU:\\","reg add",
         "schtasks","certutil","bitsadmin","mshta","vbscript:")
-    | project ShellSpawnTime=Timestamp, DeviceName,
-      InitiatingProcessAccountName,
-      FileName, ProcessCommandLine,
-      InitiatingProcessFileName, IsSuspiciousCmdLine;
+    | project ShellSpawnTime = Timestamp, DeviceId, DeviceName, ReportId,
+        InitiatingProcessAccountName,
+        FileName, ProcessCommandLine,
+        InitiatingProcessFileName, IsSuspiciousCmdLine;
 let NetworkEgress = DeviceNetworkEvents
+    | where Timestamp > ago(Lookback)
     | where InitiatingProcessFileName in~
-      ("powershell.exe","pwsh.exe","cmd.exe","mshta.exe",
-       "curl.exe","wscript.exe","cscript.exe","certutil.exe",
-       "bitsadmin.exe","msiexec.exe","RunDll32.exe")
+        ("powershell.exe","pwsh.exe","cmd.exe","mshta.exe",
+         "curl.exe","wscript.exe","cscript.exe","certutil.exe",
+         "bitsadmin.exe","msiexec.exe","RunDll32.exe")
     | where RemotePort in (80, 443, 8080, 8443, 4444, 4445, 1337)
-    //Exclude known-safe Microsoft update / telemetry destinations
+    // Exclude known-safe Microsoft update and certificate destinations
     | where RemoteUrl !has "microsoft.com"
         and RemoteUrl !has "windowsupdate.com"
         and RemoteUrl !has "adl.windows.com"
@@ -68,64 +84,75 @@ let NetworkEgress = DeviceNetworkEvents
         and RemoteUrl !has "ocsp.digicert.com"
         and RemoteUrl !has "crl.globalsign.com"
         and RemoteUrl !has "aka.ms"
-        and RemoteUrl !has "oscp2.globalsign.com"
-        and RemoteUrl !contains "custom domains here"
-    | project NetTime=Timestamp, DeviceName,
-      NetInitProc=InitiatingProcessFileName,
-      RemoteUrl, RemoteIP, RemotePort;
+        and RemoteUrl !has "ocsp2.globalsign.com"
+        // Add your own organisation's trusted domains here, for example:
+        // and RemoteUrl !has "example.com"
+    | project NetTime = Timestamp, DeviceId,
+        NetInitProc = InitiatingProcessFileName,
+        RemoteUrl, RemoteIP, RemotePort;
 let ShellToNet = ShellSpawn
-    | join kind=inner NetworkEgress
-        on DeviceName
-    | where NetTime between (ShellSpawnTime .. (ShellSpawnTime + 180s)) // tune this line to how fast you think your users are
-    | project ShellSpawnTime, NetTime, DeviceName,
-      FileName, ProcessCommandLine, InitiatingProcessFileName,
-      RemoteUrl, RemoteIP, RemotePort, IsSuspiciousCmdLine,
-      InitiatingProcessAccountName
+    | join kind=inner NetworkEgress on DeviceId
+    | where NetTime between (ShellSpawnTime .. (ShellSpawnTime + 180s)) // tune to how quickly your users act
+    | project ShellSpawnTime, NetTime, DeviceId, DeviceName, ReportId,
+        FileName, ProcessCommandLine, InitiatingProcessFileName,
+        RemoteUrl, RemoteIP, RemotePort, IsSuspiciousCmdLine,
+        InitiatingProcessAccountName
     | extend CorrelationPath = "ShellToNet";
 let ClipToShell = ClipboardAccess
-    | join kind=inner ShellSpawn
-        on DeviceName // there is no , SessionId
+    | join kind=inner ShellSpawn on DeviceId // no session ID is available to tighten this
     | where ShellSpawnTime between (ClipTime .. (ClipTime + 60s))
-    | project ClipTime, ShellSpawnTime, DeviceName, 
-      FileName, ProcessCommandLine, InitiatingProcessFileName,
-      ClipCmdLine, IsSuspiciousCmdLine,
-      InitiatingProcessAccountName
+    | project ClipTime, ShellSpawnTime, DeviceId, DeviceName, ReportId,
+        FileName, ProcessCommandLine, InitiatingProcessFileName,
+        ClipCmdLine, IsSuspiciousCmdLine,
+        InitiatingProcessAccountName
     | extend CorrelationPath = "ClipboardToShell";
-//Union and Score
+// Combine both patterns and score them
 union ShellToNet, ClipToShell
 | extend ConfidenceScore = case(
-    // CRITICAL: In-memory execution / encoded payloads
+    // CRITICAL: in-memory execution or encoded payloads
     ProcessCommandLine has_any (
         "IEX", "Invoke-Expression", "-enc", "-EncodedCommand",
         "DownloadString", "Get-Clipboard",
         "vbscript:", "javascript:"
     ), "CRITICAL",
-    // HIGH: Remote download / living-off-land
+    // HIGH: remote download or living-off-the-land binaries
     ProcessCommandLine has_any (
         "Invoke-WebRequest", "iwr", "curl", "wget",
         "DownloadFile", "certutil -urlcache",
         "bitsadmin /transfer", "msiexec /i http"
     ), "HIGH",
-    // HIGH: Persistence / evasion indicators
+    // HIGH: persistence or evasion indicators
     ProcessCommandLine has_any (
         "schtasks", "reg add", @"HKCU:\", "Bypass",
         "-WindowStyle Hidden", "-NonInteractive"
     ), "HIGH",
-    // MEDIUM: Suspicious but not conclusive
+    // MEDIUM: suspicious but not conclusive
     IsSuspiciousCmdLine == true, "MEDIUM",
-    // LOW: Default fallback
+    // LOW: default
     "LOW"
 )
 | where ConfidenceScore in ("CRITICAL","HIGH","MEDIUM")
-//Dedup: one alert per device+session+cmdline combination ---
+// One result per device, command line and score
 | summarize
-    FirstSeen=min(ShellSpawnTime),
-    AlertCount=count(),
-    RemoteUrls=make_set(RemoteUrl, 10),
-    RemoteIPs=make_set(RemoteIP, 10),
-    CorrelationPaths=make_set(CorrelationPath)
-    by DeviceName, FileName, // there is no sessionId
+    arg_min(ShellSpawnTime, ReportId),
+    AlertCount = count(),
+    RemoteUrls = make_set(RemoteUrl, 10),
+    RemoteIPs = make_set(RemoteIP, 10),
+    CorrelationPaths = make_set(CorrelationPath)
+    by DeviceId, DeviceName, FileName,
        ProcessCommandLine, InitiatingProcessFileName,
        ConfidenceScore, InitiatingProcessAccountName
-| sort by ConfidenceScore asc, FirstSeen desc
+| extend Timestamp = ShellSpawnTime // Timestamp, DeviceId and ReportId are required for a custom detection rule
+| project-rename FirstSeen = ShellSpawnTime
+| sort by ConfidenceScore asc, FirstSeen desc // alphabetical order happens to put CRITICAL first
 ```
+
+## Using it as a detection rule
+
+The query returns the `Timestamp`, `DeviceId` and `ReportId` columns that a custom detection rule needs. Once it runs cleanly and the false-positive rate is acceptable in your environment, you can save it as a [custom detection rule](https://learn.microsoft.com/en-us/defender-xdr/custom-detection-rules) so that matches raise incidents automatically. Set `Lookback` to match the rule's frequency.
+
+## Tuning notes
+
+- The shell-to-network pattern correlates on device and time only, so any script host traffic within the window counts. If it is too noisy, require the network connection to come from the spawned process itself.
+- Add your organisation's own trusted domains to the `RemoteUrl` exclusions.
+- Adjust the time windows to how quickly your users act.

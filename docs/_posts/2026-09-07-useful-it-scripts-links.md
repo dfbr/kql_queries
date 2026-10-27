@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Useful links
-description: Links that are useful in my information security work
+description: Reference links I use regularly in information security work.
 date: 2026-09-07
 categories:
   - resources
@@ -9,31 +9,34 @@ tags:
   - links
 ---
 
-My list of useful links
+Reference material I come back to regularly.
 
-## Microsoft Defender
+## Microsoft Defender and Sentinel
 
+- [Find the blast radius of a password spray (Sentinel query by reprise99)](https://github.com/reprise99/Sentinel-Queries/blob/main/Security%20Alert/SecurityAlert-FindBlastRadiusofPasswordSpray.kql)
+- [Advanced hunting API](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/run-advanced-query-api?view=o365-worldwide)
+- [Advanced hunting with the PowerShell API](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/run-advanced-query-sample-powershell?view=o365-worldwide)
+- [Get all vulnerabilities (Defender for Endpoint API)](https://learn.microsoft.com/en-us/defender-endpoint/api/get-all-vulnerabilities)
+- [Microsoft Graph security API reference](https://learn.microsoft.com/en-us/graph/api/resources/security-api-overview?view=graph-rest-1.0)
+- [Microsoft Entra sign-in error code lookup](https://login.microsoftonline.com/error)
 
+## PowerShell and Python
 
-- [Sentinel-Queries/SecurityAlert-FindBlastRadiusofPasswordSpray.kql at main · reprise99/Sentinel-Queries · GitHub](https://github.com/reprise99/Sentinel-Queries/blob/main/Security%20Alert/SecurityAlert-FindBlastRadiusofPasswordSpray.kql)
-- [Running Remote Commands - PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/learn/remoting/running-remote-commands?view=powershell-7.3)
-- [Advanced Hunting with PowerShell API Basics](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/run-advanced-query-sample-powershell?view=o365-worldwide)
-- [MSGraph API Reference](https://learn.microsoft.com/en-us/graph/api/resources/security-api-overview?view=graph-rest-1.0)
-- [Advanced Hunting API](https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/run-advanced-query-api?view=o365-worldwide)
-- [Web Check](https://web-check.as93.net/)
+- [Running remote commands in PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/learn/remoting/running-remote-commands?view=powershell-7.3)
+- [Windows PowerShell programmer's guide](https://learn.microsoft.com/en-us/previous-versions/powershell/scripting/developer/prog-guide/windows-powershell-programmer-s-guide?view=powershell-7.3)
+- [Python built-in functions](https://docs.python.org/3/library/functions.html)
+- [Secure password handling in Python (Martin Heinz)](https://martinheinz.dev/blog/59)
 - [Automate the Boring Stuff with Python](https://automatetheboringstuff.com/)
-- [Secure Password Handling in Python by Martin Heinz](https://martinheinz.dev/blog/59)
-- [University-domains-list](https://github.com/Hipo/university-domains-list?tab=readme-ov-file)
-- [Get all vulnerabilities - Microsoft Defender for Endpoint](https://learn.microsoft.com/en-us/defender-endpoint/api/get-all-vulnerabilities)
-- [SSH jump server](https://www.tecmint.com/access-linux-server-using-a-jump-host/)
-- [Python Built-in functions](https://docs.python.org/3/library/functions.html)
-- [LOLBAS](https://lolbas-project.github.io/)
-- [GTFOBins](https://gtfobins.github.io/)
-- [MS Errors](https://login.microsoftonline.com/error)
-- [Logs](https://dataops.educloud.no/app/login?nextUrl=%2Fapp%2Fworkspace_list#/)
-- [HTTP Header and Status Checker](https://httpstatus.io/)
-- [log4j finder](https://github.com/fox-it/log4j-finder?tab=readme-ov-file)
-- [Text fragments - URIs](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments)
-- [Check open port from internet](https://portchecker.co/check-v0)
-- [Check certificates issued for a domain](https://crt.sh/?q=.example.com&exclude=expired&group=none)
-- [Windows PowerShell Programmer's Guide - PowerShell](https://learn.microsoft.com/en-us/previous-versions/powershell/scripting/developer/prog-guide/windows-powershell-programmer-s-guide?view=powershell-7.3)
+
+## Investigation and reference tools
+
+- [LOLBAS: Windows binaries that attackers abuse](https://lolbas-project.github.io/)
+- [GTFOBins: Unix binaries that attackers abuse](https://gtfobins.github.io/)
+- [crt.sh: certificates issued for a domain](https://crt.sh/?q=.example.com&exclude=expired&group=none)
+- [Web Check: website and domain analysis](https://web-check.as93.net/)
+- [HTTP header and status checker](https://httpstatus.io/)
+- [Open port checker](https://portchecker.co/check-v0)
+- [log4j-finder (Fox-IT)](https://github.com/fox-it/log4j-finder?tab=readme-ov-file)
+- [University domains list](https://github.com/Hipo/university-domains-list?tab=readme-ov-file)
+- [Accessing a Linux server through an SSH jump host](https://www.tecmint.com/access-linux-server-using-a-jump-host/)
+- [URL text fragments (MDN)](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment/Text_fragments)

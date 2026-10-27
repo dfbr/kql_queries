@@ -1,9 +1,9 @@
 ---
-title: Add tenant allow/block list as a watchlist in Microsoft Sentinel
-updated: 2026-09-07 09:56:15Z
-created: 2026-09-07 07:53:15Z
+title: Sync the tenant block list to a Microsoft Sentinel watchlist
+updated: 2026-10-27
+created: 2026-09-07
 layout: post
-description: A guide (but not verbatim) to adding the tenant allow/block list to sentinel as a watchlist
+description: Use an Azure Automation runbook to copy the Microsoft Defender tenant block list into a Sentinel watchlist so you can use it in hunting queries.
 date: 2026-09-06
 categories:
   - guide
@@ -12,133 +12,145 @@ tags:
   - sentinel
   - watchlist
   - tenant allow block list
-
 ---
 
-# Add tenant allow/block list as a watchlist in Microsoft Sentinel
-There is no native link between the tenant allow/block list and sentinel. By adding the block list (tabl) as a watchlist, you can integrate the entries to your advanced hunting queries allowing you to exclude results where there is a block entry. _I don't use allow lists here but you could use these instructions as a basis and extend to include the allow list as well._
+There is no native link between the Microsoft Defender Tenant Allow/Block List (TABL) and Microsoft Sentinel. Copying the block entries into a Sentinel watchlist lets you use them in advanced hunting, for example to find mail that arrived from a sender before you blocked them, or to exclude already-blocked items from your results.
 
-To setup the watchlist you need to:
+This guide covers block entries only. The same approach works for allow entries if you extend the script.
 
-1. Create a template watchlist
-2. Create an enterprise application
-3. Assign the application a role in ExchangeOnline
-4. Create an automation account
-5. Create a key vault for the automation account
-6. Create a runtime in the automation account
-7. Create a runbook in the automation account
+## Overview
+
+1. Create a template watchlist (optional)
+2. Register an application for Exchange Online
+3. Give the application a role in Exchange Online
+4. Create an automation account with a managed identity
+5. Create a key vault and certificate, and link the certificate to the application
+6. Create a runtime environment in the automation account
+7. Create the runbook
 8. Link the runbook to a schedule
 9. Use the watchlist in advanced hunting
 
+Throughout this guide the watchlist alias is `tablSync`. If you choose a different alias, use it consistently in the runbook parameters and your queries.
 
-## Details
+## 1. Create a template watchlist (optional)
 
-#### Create a template watchlist
-1. Copy the following code and save it to `tempfile.csv`
+The runbook replaces the watchlist on every run, so this step isn't required. Creating it first lets you write and test queries before the first sync.
+
+1. Save the following as `tempfile.csv`:
    ```csv
    blockedItem,Type,Value,ExpirationDate,Notes
    dummyEntry,dummyEntry,dummyEntry,dummyEntry,dummyEntry
    ```
-2. In the [Microsoft security portal](https://security.microsoft.com) expand `Sentinel`, then `Configuration` and select `Watchlist`
+2. In the [Microsoft Defender portal](https://security.microsoft.com), expand **Microsoft Sentinel**, then **Configuration**, and select **Watchlist**.
 3. Create a new watchlist:
-	- Name `tablSync`
-	- Description `<whatever you want>`
-	- Alias `tablSync`
-4. In the `Source` section:
-	- Source type `Local file`
-	- Filetype `CSV file with a header`
-	- Number of lines before row with headings `0`
-	- Upload your `tempfile.csv` that you created in step 1
-	- Searchkey `blockedItem`
-5. `Review + Create` then `Create`
+   - Name: `tablSync`
+   - Description: anything that will help you recognise it
+   - Alias: `tablSync`
+4. In the **Source** section:
+   - Source type: `Local file`
+   - File type: `CSV file with a header`
+   - Number of lines before row with headings: `0`
+   - Upload `tempfile.csv`
+   - Search key: `blockedItem`
+5. Select **Review + create**, then **Create**.
 
-### Create an enterprise application
-1. Having elevated your Entra account to the correct role, go to App Registrations and create a new registration
-   ![ba1388cdf1bf1ac98c67281a2f485aeb.png](../_resources/ba1388cdf1bf1ac98c67281a2f485aeb.png)
-1. Enter the name for your app and choose single tenant only.
-2. Click Register
-3. Go to "Enterprise Applications" and select the application you have just created.
-4. Go to permissions and add the permission `Office 365 Exchange Online` `Exhange.ManaeAsApp`
-5. Grant admin consent for this permission
+## 2. Register an application for Exchange Online
 
-### Assign the application the required privileges in ExchangeOnline
-1. In Exchange Online, add the role `View-Only Configuration` to the application that you've just created.
+The runbook reads the block list through Exchange Online PowerShell, which needs an application identity.
 
-### Create the automation account
-1. In Azure, go to `Automation Accounts` and create a new account
-2. Enter relevant details for the `Subscription`, `Resource Group`, `Automation account name` and `Region`
-3. Click `Review + Create` then `Create`
-4. Go to the resource and select `Access control (IAM)`. Add the role `Microsoft Sentinel Automation Contributor` to the automation account. This allows the automation account to use the sentinel watchlist to add and remove entries.
+1. With a suitably privileged Entra role, go to **App registrations** and select **New registration**.
+   ![Registering the application](/assets/images/ba1388cdf1bf1ac98c67281a2f485aeb.png)
+2. Enter a name for the application and choose **Single tenant only**.
+3. Select **Register**.
+4. In the new registration, go to **API permissions** and add the application permission **Office 365 Exchange Online** › `Exchange.ManageAsApp`.
+5. Grant admin consent for the permission.
 
-#### Create a key vault for the automation account
-1. In Azure, go to `Key vaults` and create a new key vault
-2. Fill in the relevant details for the `Subscription`, `Resource group` etc. The subscription and resource group should be the same as for the automation account that you created previously.
-3. Pricing tier should be standard.
-4. `Review + create`, then `Create`
-5. You may need to change/elevate your privileges on the new keyvault in order to complete the next steps.
-6. Once created, go to the resource and create a new certificate:
-	1. The certificate name should be something like `tabl sync`
-	2. `Self signed` is perfectly fine for this purpose
-	3. The Subject can be `CN=tablSync`
-	4. You don't need to add any dns names
-	5. Validity period of `12` months (the default) is OK for our purposes - you'll need to regenerate and replace it every 12 months
-	6. Keep the rest of the settings as default and create the certificate
-7. Go to `Access control (IAM)` for the key vault.
-	1. Add the role `Key Vault Certificate User` for the automation account that you previously created (this allows the automation account to use the certificate for authentication later)
+## 3. Give the application a role in Exchange Online
 
-#### Create a runtime in the automation account
-1. Go back to the automation account that you created earlier
-2. Expand `Process Automation` and select `Runtime Environments`
-3. Create a custom `powershell 7.4` runtime environment, from the gallery, add the following packages:
-	- `ExhangeOnlineManagement`
-	- `Az` (should be there by default)
-	- `Azure CLI` (should be there by default)
-  
-#### Create a runbook in the automation account
-1. Once the runtime is created, go to the section `Runbooks` in the `Process Automation` section of the automation account
-5. Create a new runbook:
-	- Runbook `Create new`
-	- Name `<Your chosen name>`
-	- Runbook type `Powershell`
-	- Runtime Environment: select the environment you've just created
-	- Description `<As you wish>`
-6. Once the runbook is created, you are ready to enter the code for the script it will run. Here is the vibecoded script that I am using:
-```
-<Enter code here, redact and explain what must be edited>
+Assign the **View-Only Configuration** role in Exchange Online to the application you have just registered. This allows it to read the Tenant Allow/Block List without being able to change it.
+
+## 4. Create an automation account with a managed identity
+
+1. In the Azure portal, go to **Automation Accounts** and create a new account.
+2. Enter the **Subscription**, **Resource group**, **Automation account name** and **Region**.
+3. Select **Review + create**, then **Create**.
+4. In the new automation account, go to **Account settings** › **Identity** and turn on the **System assigned** managed identity. The runbook uses this identity to sign in to Azure.
+5. Go to the resource group (or Log Analytics workspace) that holds your Sentinel workspace, open **Access control (IAM)** and assign the **Microsoft Sentinel Contributor** role to the automation account's managed identity. This allows the runbook to create and replace the watchlist.
+
+## 5. Create a key vault and certificate
+
+1. In the Azure portal, go to **Key vaults** and create a new key vault, using the same subscription and resource group as the automation account.
+2. Use the **Standard** pricing tier and the **Azure role-based access control** permission model.
+3. Select **Review + create**, then **Create**. You may need to give your own account a Key Vault role before you can complete the next steps.
+4. In the key vault, go to **Certificates** and generate a new certificate:
+   - Name: for example `tablSync`
+   - Type of certificate authority: `Self-signed certificate`
+   - Subject: `CN=tablSync`
+   - Validity period: `12` months (the default)
+   - Leave the other settings at their defaults.
+5. In the key vault's **Access control (IAM)**, assign the **Key Vault Certificate User** role to the automation account's managed identity. This lets the runbook read the certificate to authenticate to Exchange Online.
+6. Open the certificate, download it in **CER** format (public key only), and upload that file to the app registration under **Certificates & secrets** › **Certificates**. Without this step the application can't authenticate.
+
+The certificate expires after 12 months. When you renew it, upload the new public key to the app registration as well.
+
+## 6. Create a runtime environment
+
+1. In the automation account, expand **Process Automation** and select **Runtime Environments**.
+2. Create a custom **PowerShell 7.4** runtime environment and add these packages from the gallery:
+   - `ExchangeOnlineManagement`
+   - `Az` (normally included by default)
+
+## 7. Create the runbook
+
+1. In the automation account, go to **Process Automation** › **Runbooks** and create a new runbook:
+   - Runbook: `Create new`
+   - Name: your choice
+   - Runbook type: `PowerShell`
+   - Runtime environment: the one you have just created
+   - Description: your choice
+2. Paste in the script below. I developed it with AI assistance and have tested it in my own environment.
+3. Edit the parameter block at the top to match your setup. Each placeholder in angle brackets explains what it needs.
+4. Save and publish the runbook.
+5. Start the runbook manually and check the output before scheduling it. Expect some debugging the first time.
+
+The script deletes the watchlist and recreates it with the current block list. While it runs there is a short window where the watchlist is empty, so avoid relying on it in analytics rules that run at the same moment. If the block list comes back empty, the script stops without touching the watchlist.
+
+```powershell
 <#
 .SYNOPSIS
-    Automated high-speed sync for Tenant Allow/Block List (TABL) items to 
-    Microsoft Sentinel Watchlist using Key Vault Certificate Auth and Managed Identity.
+    Syncs Tenant Allow/Block List (TABL) block entries to a Microsoft Sentinel watchlist.
 .DESCRIPTION
-    Production-grade runbook featuring robust error handling, exponential retries, 
-    CSV escaping, zero-item deletion guards, Az 13+ token compatibility, and proper session teardown.
+    Authenticates to Azure with the automation account's managed identity and to
+    Exchange Online with a Key Vault certificate. Includes retries with exponential
+    back-off, CSV escaping, a guard against wiping the watchlist when no items are
+    returned, and session clean-up.
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ApplicationId = "<the applicationID of the enterprise application that has the exchangeOnline role>",
+    [string]$ApplicationId = "<application (client) ID of the app registration with the Exchange Online role>",
 
     [Parameter(Mandatory = $false)]
-    [string]$KeyVaultName = "<the name of the keyvault with the generated certificate>",
+    [string]$KeyVaultName = "<name of the key vault holding the certificate>",
 
     [Parameter(Mandatory = $false)]
-    [string]$CertificateName = "<the name of the certificate in the keyvault>",
+    [string]$CertificateName = "<name of the certificate in the key vault>",
 
     [Parameter(Mandatory = $false)]
-    [string]$OrganizationDomain = "<your tenant's organisation name, normally something.onmicrosoft.com>",
+    [string]$OrganizationDomain = "<your tenant's initial domain, normally something.onmicrosoft.com>",
 
     [Parameter(Mandatory = $false)]
-    [string]$SubscriptionId = "<the subscription ID for the subscription you're using>",
+    [string]$SubscriptionId = "<ID of the subscription that holds your Sentinel workspace>",
 
     [Parameter(Mandatory = $false)]
-    [string]$ResourceGroupName = "<the resource group name for the resource group that your watchlist table is held in>",
+    [string]$ResourceGroupName = "<resource group that holds your Sentinel workspace>",
 
     [Parameter(Mandatory = $false)]
-    [string]$WorkspaceName = "<the workspace name that your sentinel logs use?",
+    [string]$WorkspaceName = "<name of your Sentinel Log Analytics workspace>",
 
     [Parameter(Mandatory = $false)]
-    [string]$WatchlistAlias = "<your watchlist alias, probably tablSync>",
+    [string]$WatchlistAlias = "tablSync",
 
     [Parameter(Mandatory = $false)]
     [string]$SearchKey = "blockedItem"
@@ -353,7 +365,7 @@ Write-Verbose "`n  [DEBUG] API Call #2: Recreating Watchlist container with raw 
 
 $PayloadObject = @{
     properties = @{
-        displayName         = "Tenant Allow Block List"
+        displayName         = $WatchlistAlias
         description         = "Synced TABL Block items from Exchange Online"
         provider            = "Microsoft Defender"
         source              = "Exchange Online TABL"
@@ -402,49 +414,45 @@ try {
     throw "[CRITICAL] Watchlist Upload Failed: $_"
 }
 ```
-7. Edit the parameter block (first section of the code) to inclue your specific values for your setup
-8. Save and publish the code.
 
-__NB: you will probably need to do some testing and debugging now, you can do this through manually starting the runbook and reviewing the output. GOOD LUCK!__
+## 8. Link the runbook to a schedule
 
-#### Link the runbook to a schedule
-1. Assuming you managed to get the code working, you'll now want to link the runbook to a schedule. This can be a schedule of your choice depending on how often you update the tenant allow/block list. In my organisation, updates are sporadic throughout the day so the watchlist is updated once an hour. YMMV.
-2. In the `Overview` section of the runbook, select `Link to Schedule`
-3. Create a schedule to suit your use case, customise any of the default parameters if you need to (the defaults are taken from the code above) and apply it to the runbook
-4. Watch the logs to see your successful updates to the watchlist
+1. Once the runbook works, open its **Overview** page and select **Link to schedule**.
+2. Create a schedule that matches how often your block list changes. In my organisation changes happen sporadically through the day, so the watchlist is updated hourly.
+3. Override any parameter defaults if needed, then save.
+4. Check the job output after the first scheduled run to confirm the watchlist was updated.
 
-#### Use the watchlist in advanced hunting
-1. The simplest use case is to just list the watchlist in advanced hunting. You should be able to do this with:
-   ```kql
-	 _GetWatchlist('<your watchlist alias>')
-   ```
-2. If you then want to do more interesting things, you could, for example, look for all emails where the sender is on the watchlist with something like:
-   ```kql
-	 _GetWatchlist('tenantAllowBlockList')
-	| where Type == "Sender"
-	// Step 1: Extract and categorize blocked items from your watchlist
-	let WatchlistData = _GetWatchlist('tenantAllowBlockList')
-	    | where Type == "Sender"
-	    | project BlockedItem = tolower(tostring(blockedItem));
-	// Split items into specific email addresses vs domain-only entries
-	let BlockedEmails = WatchlistData 
-	    | where BlockedItem contains "@" 
-	    | project BlockedItem;
-	let BlockedDomains = WatchlistData 
-	    | where BlockedItem !contains "@" 
-	    | project BlockedItem;
-	// Step 2: Query Email events and filter by exact email OR domain match
-	EmailEvents
-	| extend SenderMailFromAddressLower = tolower(SenderMailFromAddress),
-	         SenderFromAddressLower     = tolower(SenderFromAddress),
-	         SenderMailFromDomainLower  = tolower(SenderMailFromDomain),
-	         SenderFromDomainLower      = tolower(SenderFromDomain)
-	| where 
-	    // Match 1: Exact sender email matches the watchlist
-	    SenderMailFromAddressLower in (BlockedEmails) 
-	    or SenderFromAddressLower in (BlockedEmails)
-	    // Match 2: Sender domain matches a domain entry in the watchlist
-	    or SenderMailFromDomainLower in (BlockedDomains) 
-	    or SenderFromDomainLower in (BlockedDomains)
-   ```
-   3. Now it's your turn to be creative with how you use it.
+## 9. Use the watchlist in advanced hunting
+
+To list the watchlist:
+
+```kql
+_GetWatchlist('tablSync')
+```
+
+To find email from senders that are now on the block list, matching either the exact address or the domain:
+
+```kql
+// Blocked senders from the watchlist, lower-cased for matching
+let WatchlistData = _GetWatchlist('tablSync')
+    | where Type == "Sender"
+    | project BlockedItem = tolower(tostring(blockedItem));
+// Split into full email addresses and domain-only entries
+let BlockedEmails = WatchlistData
+    | where BlockedItem contains "@"
+    | project BlockedItem;
+let BlockedDomains = WatchlistData
+    | where BlockedItem !contains "@"
+    | project BlockedItem;
+EmailEvents
+| extend SenderMailFromAddressLower = tolower(SenderMailFromAddress),
+         SenderFromAddressLower     = tolower(SenderFromAddress),
+         SenderMailFromDomainLower  = tolower(SenderMailFromDomain),
+         SenderFromDomainLower      = tolower(SenderFromDomain)
+| where SenderMailFromAddressLower in (BlockedEmails)
+    or SenderFromAddressLower in (BlockedEmails)
+    or SenderMailFromDomainLower in (BlockedDomains)
+    or SenderFromDomainLower in (BlockedDomains)
+```
+
+From here you can join the watchlist to other tables, for example `UrlClickEvents` for blocked URLs or `DeviceFileEvents` for blocked file hashes.
