@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Detect ClickFix attack
+title: Detect ClickFix attacks
 description: A starting point for detecting ClickFix attacks against windows computers in the environment
 date: 2026-09-08
 categories:
@@ -11,7 +11,11 @@ tags:
   - Advanced hunting
 ---
 
-This query is based on the query from [The One Chokepoint to Rule Them All: ](https://ddosier-disects.medium.com/the-one-chokepoint-to-rule-them-all-why-i-deleted-50-clickfix-detection-rules-and-replaced-them-7c532206d32d) Why I Deleted 50 ClickFix Detection Rules and Replaced Them With One. I had to do quite a bit of debugging for my environment and tailoring for my environment. 
+## ClickFix detection
+
+__ClickFix__ is a social-engineering technique that tricks someone into running a command on their own computer. For example, a webpage may show a fake CAPTCHA or error message and tell the visitor to follow steps that copy and run a command. Because the person starts the process themselves, the activity can look different from a conventional malware download.
+
+This query is based on the query from [The One Chokepoint to Rule Them All: ](https://ddosier-disects.medium.com/the-one-chokepoint-to-rule-them-all-why-i-deleted-50-clickfix-detection-rules-and-replaced-them-7c532206d32d): Why I Deleted 50 ClickFix Detection Rules and Replaced Them With One. I had to do quite a bit of debugging for my environment and tailoring for my environment. 
 
 If it runs in your environment, you can use this for a detection rule and have incidents automatically inserted into your [todo list](https://security.microsoft.com/incidents)
 
@@ -46,8 +50,7 @@ let ShellSpawn = DeviceProcessEvents
         "Net.WebClient","Invoke-WebRequest","iwr","curl",
         "Start-Process","Hidden","Bypass","HKCU:\\","reg add",
         "schtasks","certutil","bitsadmin","mshta","vbscript:")
-    | where ProcessCommandLine !contains "c:\\ProgramData\\scripts\\RemoveApps.ps1" // a file we appear to use here so excluding
-    | project ShellSpawnTime=Timestamp, DeviceName, // there is no sessionId
+    | project ShellSpawnTime=Timestamp, DeviceName,
       InitiatingProcessAccountName,
       FileName, ProcessCommandLine,
       InitiatingProcessFileName, IsSuspiciousCmdLine;
@@ -64,19 +67,17 @@ let NetworkEgress = DeviceNetworkEvents
         and RemoteUrl !has "office365.com"
         and RemoteUrl !has "ocsp.digicert.com"
         and RemoteUrl !has "crl.globalsign.com"
-        and RemoteUrl !has "api.anthropic.com"
-        and RemoteUrl !has "updates.logitech.com"
         and RemoteUrl !has "aka.ms"
         and RemoteUrl !has "oscp2.globalsign.com"
         and RemoteUrl !contains "custom domains here"
-    | project NetTime=Timestamp, DeviceName, // there is no sessionId
+    | project NetTime=Timestamp, DeviceName,
       NetInitProc=InitiatingProcessFileName,
       RemoteUrl, RemoteIP, RemotePort;
 let ShellToNet = ShellSpawn
     | join kind=inner NetworkEgress
-        on DeviceName //, there is no SessionId
+        on DeviceName
     | where NetTime between (ShellSpawnTime .. (ShellSpawnTime + 180s)) // tune this line to how fast you think your users are
-    | project ShellSpawnTime, NetTime, DeviceName, // there is no , SessionId,
+    | project ShellSpawnTime, NetTime, DeviceName,
       FileName, ProcessCommandLine, InitiatingProcessFileName,
       RemoteUrl, RemoteIP, RemotePort, IsSuspiciousCmdLine,
       InitiatingProcessAccountName
@@ -85,7 +86,7 @@ let ClipToShell = ClipboardAccess
     | join kind=inner ShellSpawn
         on DeviceName // there is no , SessionId
     | where ShellSpawnTime between (ClipTime .. (ClipTime + 60s))
-    | project ClipTime, ShellSpawnTime, DeviceName, // there is no, SessionId,
+    | project ClipTime, ShellSpawnTime, DeviceName, 
       FileName, ProcessCommandLine, InitiatingProcessFileName,
       ClipCmdLine, IsSuspiciousCmdLine,
       InitiatingProcessAccountName
@@ -127,5 +128,4 @@ union ShellToNet, ClipToShell
        ProcessCommandLine, InitiatingProcessFileName,
        ConfidenceScore, InitiatingProcessAccountName
 | sort by ConfidenceScore asc, FirstSeen desc
-//| distinct ProcessCommandLine
 ```
