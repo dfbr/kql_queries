@@ -2,7 +2,7 @@ title: The work in front of me
 description: Aide memoire for what I've done in work.
 url: "https://work.dfbr.co.uk"
 baseurl: ""
-lang: en-US
+lang: en-GB
 
 markdown: kramdown
 permalink: /:categories/:title/

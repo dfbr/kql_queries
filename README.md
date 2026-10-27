@@ -36,4 +36,4 @@ categories:
 ---
 ```
 
-The example post in `docs/_posts/` demonstrates the expected structure for query, context, and notes.
+Set `published: false` in the front matter to keep a post as an unpublished draft.
