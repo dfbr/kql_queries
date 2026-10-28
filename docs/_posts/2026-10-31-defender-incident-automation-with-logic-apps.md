@@ -17,7 +17,7 @@ We get a _lot_ of incidents. Tens of thousands of users and thousands of endpoin
 
 When I arrived, the incident queue was unmanageable. We then went through a phase of rough-and-ready PowerShell scripts run by hand. Now we're heading towards a manageable workload, with suppression rules and Logic Apps that fire as soon as Defender raises an incident.
 
-It's not a panacea. Some incidents still need manual investigation. But the team can now see the light and spend more time on strategic work.
+It's not a panacea. Some incidents still need manual investigation. But the team can now see the light and spend more time on strategic work with about 50% of our incidents handled completely automatically.
 
 ## How it's set up
 
