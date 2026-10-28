@@ -33,7 +33,51 @@ Automation rules in Defender trigger different actions or Logic Apps depending o
 
 A custom detection rule finds computers that have connected to a domain registered in the last seven days. It runs twice a day, and if it finds anything it raises an incident in Defender.
 
-<!-- TODO: name the newly registered domain feed and link to the KQL in your kql_queries repo -->
+```kql
+let nrd_domains = externaldata(RawLine: string) [
+        h"https://gitlab.com/hagezi/mirror/-/raw/main/dns-blocklists/domains/nrd7.txt"
+    ]
+    with (format="txt")
+    | where isnotempty(RawLine) and not(RawLine startswith "#")
+    | project DomainName = tolower(trim(@"\s+", RawLine));
+// 2. One latest identity record per SID
+let LatestIdentityAccountInfo =
+    IdentityAccountInfo
+    | where TimeGenerated > ago(25h)
+    | where isnotempty(Sid)
+    | summarize arg_max(TimeGenerated, *) by Sid
+    | project
+        Sid,
+        IdentityLastSeen = TimeGenerated,
+        IdentityAccountUpn = AccountUpn,
+        IdentityDisplayName = DisplayName,
+        IdentityDepartment = Department,
+        IdentityJobTitle = JobTitle,
+        IdentityEmailAddress = EmailAddress;
+// 3. Find connections to domains in the blocklist and enrich with identity data
+DeviceNetworkEvents
+| where TimeGenerated >= ago(1d)
+| where ActionType == "ConnectionSuccess"
+| where isnotempty(RemoteUrl)
+| extend DomainName = tolower(RemoteUrl)
+| join kind=inner hint.strategy=broadcast nrd_domains on DomainName
+| project
+    TimeGenerated,
+    DeviceName,
+    DeviceId,
+    ActionType,
+    DomainName,
+    RemoteIP,
+    InitiatingProcessFileName,
+    ReportId,
+    InitiatingProcessAccountName,
+    InitiatingProcessAccountSid
+| lookup kind=leftouter LatestIdentityAccountInfo
+    on $left.InitiatingProcessAccountSid == $right.Sid
+| order by TimeGenerated desc
+```
+
+With thanks to [https://github.com/hagezi/dns-blocklists](https://github.com/hagezi/dns-blocklists) for the work producing the lists of newly registered domains.
 
 ### The Logic App
 
@@ -49,9 +93,9 @@ flowchart TD
     E -- No --> H([Close incident as informational, expected activity])
 ```
 
-The Logic App takes each domain and IP address from the incident and checks it against [VirusTotal](https://www.virustotal.com) and [AbuseIPDB](https://www.abuseipdb.com). We treat a result as malicious if <!-- TODO: e.g. "VirusTotal shows N or more engines flagging the domain, or the IP's AbuseIPDB confidence score is N% or higher" -->.
+The Logic App takes each domain and IP address from the incident and checks it against [VirusTotal](https://www.virustotal.com) and [AbuseIPDB](https://www.abuseipdb.com). We treat a result as malicious if virustotal has any malicious results or more than 4 suspicious results and an IP adress is malicious if the abuseIPDB score is above 30. These need tuning for your environment but work for ours.
 
-If anything crosses the threshold, the user gets an email. It explains why they've received it, gives advice on suspicious links, and tells them how to contact us if they're worried. The incident is then closed as a true positive. If the virus scan detects anything else then we get an alert on that and investigate manually.
+If anything crosses the threshold, the user gets an email. It explains why they've received it, gives advice on suspicious links, and tells them how to contact us if they're worried. The incident is then closed as a true positive. If the virus scan detects anything else then we get an alert on that and investigate manually. The incident remains available against the device and user should we need to know more.
 
 If nothing crosses the threshold, the incident is closed as *informational, expected activity*. The connection was real, but it wasn't malicious.
 
