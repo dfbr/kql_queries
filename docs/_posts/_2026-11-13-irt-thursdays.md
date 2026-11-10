@@ -1,8 +1,8 @@
 ---
-title: "IRT Thursdays: a weekly habit that makes incident response stick"
+title: "IRT Thursdays"
 layout: post
 published: false # draft: review, then remove this line to publish
-description: How we use Thursdays for informal, SME-led incident response training across the team, and ten topics to try if you want to do the same.
+description: How we use Thursdays for informal, SME-led incident response training across the team.
 date: 2026-11-13
 categories:
   - incident response
@@ -13,7 +13,7 @@ tags:
   - leadership
 ---
 
-Every Thursday, our incident response team (IRT) spends a short, informal session working through one practical question together. No slides, no scoring, no pass or fail. Just one real problem we might face during an incident, and the people best placed to answer it.
+Every Thursday, our incident response team (IRT) spends a short, informal session working through one practical question together but synchronously on teams. No slides, no scoring, no pass or fail. Just one real problem we might face during an incident, and the people best placed to answer it.
 
 I started IRT Thursdays because incidents rarely fail on the big things. They stall on the small, practical questions nobody has asked in calm conditions: who can pull that log, who has access to that console, who signs off on the message to users. Formal exercises are valuable, but they are infrequent and heavy to organise. A weekly habit is light enough to keep going and regular enough to build real muscle memory.
 
@@ -33,6 +33,7 @@ The lead's job is simple:
 1. Walk through how we would actually answer the question today, live, in the real tools where possible.
 2. Point out where it is slow, unclear or depends on one person.
 3. Capture what we learned so it is findable next time.
+4. Update the documentation so we don't struggle when we need to do the same thing in a real incident. 
 
 Sessions are deliberately informal. Questions are welcome at any level, and "I don't know" is a perfectly good answer, because finding that out on a Thursday is far cheaper than finding it out at 2am during an incident.
 
@@ -54,18 +55,17 @@ My role is to coordinate, not to answer. I set the question, make sure the right
 
 ## Ten topics to try
 
-If you want to start something similar, here are ten questions that work well. Each one has a natural lead and tends to surface something worth fixing.
+If you want to start something similar, here are  some questions that work well. Each one has a natural lead and tends to surface something worth fixing.
 
-1. **"A user's account looks compromised. How do we contain it in the next 15 minutes?"** Disable sign-in, revoke sessions and tokens, reset credentials, check MFA methods and inbox rules.
-2. **"Which user or admin made this change, and when?"** Finding the right audit log, how far back it goes, and who has access to query it.
-3. **"We need to tell users something now. How do we draft, approve and publish it?"** Channels, templates, who signs off, and how to reach people if email itself is affected.
-4. **"A device is behaving suspiciously. How do we isolate it, and who decides?"** Isolation tooling, the authority to use it, and the impact on the user.
-5. **"What evidence do we need to preserve before we fix anything?"** Logs, memory, disk images, retention periods, and chain of custody basics.
-6. **"Is this a personal data breach, and do we need to report it?"** Working with the data protection officer, reporting deadlines, and what information they need from us.
-7. **"A critical supplier tells us they have been breached. What now?"** Contracts and contacts, what access they hold, and how to assess our exposure.
-8. **"Our primary tools are down or untrusted. How do we communicate and coordinate?"** Out-of-band contact lists, backup channels, and who keeps the incident log.
-9. **"How do we find every system affected by this vulnerability or indicator?"** Asset inventory, vulnerability scan data, and hunting queries across the estate.
-10. **"The incident is over. How do we run the lessons-learned review and make sure actions happen?"** Blameless review, owners and dates for actions, and how they are tracked to closure.
+1. A user's account looks compromised. How do we contain it in the next 15 minutes?
+2. Which user or admin made this change?
+3. We need to tell users something now. How do we draft, approve and publish it?
+4. A device is behaving suspiciously. How do we isolate it, and who decides?
+5. What evidence do we need to preserve before we fix something?
+6. Is this a personal data breach, and do we need to report it?
+7. A critical supplier tells us they have been breached. What now?
+8. Our primary tools are down or untrusted. How do we communicate and coordinate?
+9. How do we find every system affected by this vulnerability or indicator?
 
 ## Getting started
 
