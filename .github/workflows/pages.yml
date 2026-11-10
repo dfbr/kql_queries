@@ -4,6 +4,12 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  # Daily rebuild at 06:00 London time so future-dated posts go live on their date.
+  # Cron is UTC-only, so both candidates are scheduled and the check job picks the
+  # one matching the current UK offset (05:00 UTC in BST, 06:00 UTC in GMT).
+  schedule:
+    - cron: '0 5 * * *'
+    - cron: '0 6 * * *'
 
 permissions:
   contents: read
@@ -15,7 +21,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.tz.outputs.run }}
+    steps:
+      - id: tz
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          offset=$(TZ=Europe/London date +%z)
+          if { [ "$offset" = "+0100" ] && [ "$CRON" = "0 5 * * *" ]; } || \
+             { [ "$offset" = "+0000" ] && [ "$CRON" = "0 6 * * *" ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
+    needs: check
+    if: needs.check.outputs.run == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
