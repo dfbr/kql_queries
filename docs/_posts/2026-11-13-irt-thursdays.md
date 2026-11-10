@@ -26,7 +26,7 @@ Each week starts with a single question, framed the way it would come up in a re
 - When was this firewall rule implemented and who authorised it?
 - Which third parties hold more than 1,000 of our user records?
 
-The question decides who leads. If it is about firewalls, the  network team leads. If it is about third parties, procurement and legal lead. The lead is the subject matter expert (SME) for that area, not me, and it rotates every week.
+The question decides who leads. If it is about firewalls, the network team leads. If it is about third parties, procurement and legal lead. The lead is the subject matter expert (SME) for that area, not me, and it rotates every week.
 
 The lead's job is simple:
 
@@ -60,7 +60,7 @@ I assumed Defender was the answer. It is our answer, but only sometimes. Other t
 
 Working with our network, identity and client teams, we found three additional ways of isolating computers if our primary method fails. We also found that others in our department had solved this before but not documented it fully.
 
-thirty minutes later and we had a complete, documented and shared solution. We're better able to protect our network when it matters most and the information doesn't sit in one person's head.
+Thirty minutes later, we had a complete, documented and shared solution. We're better able to protect our network when it matters most and the information doesn't sit in one person's head.
 
 ## Topics to get you started
 
@@ -69,12 +69,12 @@ If you want to start something similar, here are some questions that work well. 
 1. A user's account looks compromised. How do we contain it in the next 15 minutes?
 2. Which user or admin made this change?
 3. We need to tell users something now. How do we draft, approve and publish it?
-4. How did we do managing the last incident? How do we perform a review and learn lessons?
-5. What evidence do we need to preserve before we fix something?
-6. Is this a personal data breach, and do we need to report it?
-7. A critical supplier tells us they have been breached. What now?
-8. Our primary tools are down or untrusted. How do we communicate and coordinate?
-9. How do we find every system affected by this vulnerability or indicator?
+4. What evidence do we need to preserve before we fix something?
+5. Is this a personal data breach, and do we need to report it?
+6. A critical supplier tells us they have been breached. What now?
+7. Our primary tools are down or untrusted. How do we communicate and coordinate?
+8. How do we find every system affected by this vulnerability or indicator?
+9. How did we do managing the last incident? How do we perform a review and learn lessons?
 
 ## Getting started
 
