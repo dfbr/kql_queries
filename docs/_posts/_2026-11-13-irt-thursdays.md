@@ -1,7 +1,7 @@
 ---
 title: "IRT Thursdays"
 layout: post
-published: false # draft: review, then remove this line to publish
+published: true
 description: How we use Thursdays for informal, SME-led incident response training across the team.
 date: 2026-11-13
 categories:
