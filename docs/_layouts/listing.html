@@ -1,0 +1,11 @@
+---
+layout: default
+---
+<section class="post-list" aria-labelledby="recent-heading">
+  <div class="section-heading">
+    <h2 id="recent-heading">Older notes · page {{ page.page_number }}</h2>
+    <a href="{{ '/feed.xml' | relative_url }}">RSS feed</a>
+  </div>
+
+  {% include post-list.html page=page.page_number %}
+</section>

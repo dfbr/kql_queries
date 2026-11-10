@@ -1,0 +1,65 @@
+{%- comment -%}
+  Paginated list of posts and notes.
+  Page 1 shows `first_page_size` entries; every later page shows `page_size`.
+  Pass `page` (1, 2, 3 ...) when including. Pages 2+ are stub files generated
+  by scripts/generate-pagination.sh at build time.
+{%- endcomment -%}
+{%- assign first_page_size = site.pagination.first_page | default: 5 -%}
+{%- assign page_size = site.pagination.per_page | default: 10 -%}
+{%- assign current = include.page | default: 1 | plus: 0 -%}
+
+{%- assign entries = site.posts | concat: site.notes | sort: "date" | reverse -%}
+{%- assign total = entries.size -%}
+
+{%- if total > first_page_size -%}
+  {%- assign remaining = total | minus: first_page_size | plus: page_size | minus: 1 -%}
+  {%- assign total_pages = remaining | divided_by: page_size | plus: 1 -%}
+{%- else -%}
+  {%- assign total_pages = 1 -%}
+{%- endif -%}
+
+{%- if current == 1 -%}
+  {%- assign offset = 0 -%}
+  {%- assign limit = first_page_size -%}
+{%- else -%}
+  {%- assign offset = current | minus: 2 | times: page_size | plus: first_page_size -%}
+  {%- assign limit = page_size -%}
+{%- endif -%}
+
+{% if total > 0 and offset < total %}
+  {% for post in entries limit: limit offset: offset %}
+    <article class="post-preview">
+      <p class="post-meta">{{ post.date | date: "%d %b %Y" }}{% if post.categories.size > 0 %} · {{ post.categories | join: ", " }}{% endif %}</p>
+      <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+      {% if post.description %}<p>{{ post.description }}</p>{% else %}{{ post.excerpt | strip_html | truncatewords: 30 }}{% endif %}
+    </article>
+  {% endfor %}
+{% else %}
+  <p>No notes have been published yet.</p>
+{% endif %}
+
+{% if total_pages > 1 %}
+  {%- assign prev = current | minus: 1 -%}
+  {%- assign next = current | plus: 1 -%}
+  <nav class="pagination" aria-label="Pagination">
+    {% if current > 1 %}
+      {% if prev == 1 %}{% assign prev_url = '/' %}{% else %}{% capture prev_url %}/page/{{ prev }}/{% endcapture %}{% endif %}
+      <a class="pagination-step" rel="prev" href="{{ prev_url | relative_url }}">← Newer</a>
+    {% else %}
+      <span class="pagination-step is-disabled">← Newer</span>
+    {% endif %}
+
+    <ol class="pagination-pages">
+      {% for n in (1..total_pages) %}
+        {% if n == 1 %}{% assign n_url = '/' %}{% else %}{% capture n_url %}/page/{{ n }}/{% endcapture %}{% endif %}
+        <li>{% if n == current %}<span aria-current="page">{{ n }}</span>{% else %}<a href="{{ n_url | relative_url }}">{{ n }}</a>{% endif %}</li>
+      {% endfor %}
+    </ol>
+
+    {% if current < total_pages %}
+      <a class="pagination-step" rel="next" href="{{ '/page/' | append: next | append: '/' | relative_url }}">Older →</a>
+    {% else %}
+      <span class="pagination-step is-disabled">Older →</span>
+    {% endif %}
+  </nav>
+{% endif %}
