@@ -11,7 +11,7 @@ PER_PAGE=${PER_PAGE:-10}
 DOCS_DIR=${1:-docs}
 
 count=0
-for dir in "$DOCS_DIR/_posts" "$DOCS_DIR/_notes"; do
+for dir in "$DOCS_DIR/_posts"; do
   [ -d "$dir" ] || continue
   while IFS= read -r -d '' f; do
     # Jekyll skips files starting with "_" and posts marked unpublished.

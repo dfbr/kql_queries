@@ -1,5 +1,5 @@
 {%- comment -%}
-  Paginated list of posts and notes.
+  Paginated list of posts (site.posts is already newest first).
   Page 1 shows `first_page_size` entries; every later page shows `page_size`.
   Pass `page` (1, 2, 3 ...) when including. Pages 2+ are stub files generated
   by scripts/generate-pagination.sh at build time.
@@ -8,7 +8,7 @@
 {%- assign page_size = site.pagination.per_page | default: 10 -%}
 {%- assign current = include.page | default: 1 | plus: 0 -%}
 
-{%- assign entries = site.posts | concat: site.notes | sort: "date" | reverse -%}
+{%- assign entries = site.posts -%}
 {%- assign total = entries.size -%}
 
 {%- if total > first_page_size -%}
