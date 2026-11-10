@@ -24,9 +24,9 @@ The aim is to run it every week, but in reality some weeks get missed. Live inci
 Each week starts with a single question, framed the way it would come up in a real incident. For example:
 
 - When was this firewall rule implemented and who authorised it?
-- which third parties hold more than 1000 of our user records?
+- Which third parties hold more than 1,000 of our user records?
 
-The question decides who leads. If it is about identity and audit logs, the identity team leads. If it is about user communications, the people who own our comms channels lead. The lead is the subject matter expert (SME) for that area, not me, and it rotates every week.
+The question decides who leads. If it is about firewalls, the  network team leads. If it is about third parties, procurement and legal lead. The lead is the subject matter expert (SME) for that area, not me, and it rotates every week.
 
 The lead's job is simple:
 
@@ -54,13 +54,13 @@ My role is to coordinate, not to answer. I set the question, make sure the right
 
 ## Example Thursday
 
-Here is how one week went. The question was one I thought would be simple: how do we isolate a computer from the network. And it was simple... until it wasn't. 
+Here is how one week went. The question was one I thought would be simple: how do we isolate a computer from the network? And it was simple... until it wasn't.
 
-My assumption was wrong that Defender was the answer. It is our answer, but only sometimes. Other times it fails to isolate or we have computers it doesn't control on the network. 
+I assumed Defender was the answer. It is our answer, but only sometimes. Other times it can fail to isolate or we have computers it doesn't control on the network.
 
-Working with our network, identity and client teams, we found three additional ways of isolating computers if our primary method fails. we also found that others in our department had done this work before but not documented. 
+Working with our network, identity and client teams, we found three additional ways of isolating computers if our primary method fails. We also found that others in our department had solved this before but not documented it fully.
 
-30 minutes later and we have a complete, documented and shared solution. We're better able to protect our network when it matters most and the information doesn't sit in one person's head. Win, win, win!
+thirty minutes later and we had a complete, documented and shared solution. We're better able to protect our network when it matters most and the information doesn't sit in one person's head.
 
 ## Topics to get you started
 
@@ -69,7 +69,7 @@ If you want to start something similar, here are some questions that work well. 
 1. A user's account looks compromised. How do we contain it in the next 15 minutes?
 2. Which user or admin made this change?
 3. We need to tell users something now. How do we draft, approve and publish it?
-4. A device is behaving suspiciously. How do we isolate it, and who decides?
+4. How did we do managing the last incident? How do we perform a review and learn lessons?
 5. What evidence do we need to preserve before we fix something?
 6. Is this a personal data breach, and do we need to report it?
 7. A critical supplier tells us they have been breached. What now?
