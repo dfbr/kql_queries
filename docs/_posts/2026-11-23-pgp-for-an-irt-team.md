@@ -2,8 +2,17 @@
 layout: post
 title: "Sharing a team PGP key across an incident response team"
 date: 2026-11-24 09:00:00 +0100
+published: true
 categories: guide
 description: "How we split one PGP key for irt@myorg.example across eight people, using YubiKeys for the primary key and per-person subkeys for day-to-day work."
+categories:
+  - technical
+tags:
+  - technical
+  - PGP
+  - GPG
+  - email
+  - encryption
 ---
 
 As a lead CSIRT member for my organisation, it was a little embarrassing when we lost control of our PGP keys which are used to decrypt and sign messages to and from our irt email address. But with every embarrassment comes opportunity.
