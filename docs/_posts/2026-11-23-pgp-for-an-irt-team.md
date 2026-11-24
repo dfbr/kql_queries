@@ -62,7 +62,7 @@ With these decisions and technical limitations, we came up with a key architectu
 
 ```mermaid
 flowchart LR
-  subgraph KEY["IRT key: irt@myorg.example"]
+  subgraph KEY["IRT PGP key"]
     P["Primary key - certify"]
     E["Shared encryption subkey"]
     S["Signing subkeys - one per person, 8 total"]
